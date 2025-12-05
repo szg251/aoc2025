@@ -31,8 +31,6 @@ pub fn solution(lines: impl Iterator<Item = anyhow::Result<String>>) -> anyhow::
             count += 1;
         }
         next = next.rem_euclid(100);
-        eprintln!();
-        dbg!(dial, direction, amount, next, count);
         dial = next;
     }
 
@@ -40,14 +38,14 @@ pub fn solution(lines: impl Iterator<Item = anyhow::Result<String>>) -> anyhow::
 }
 
 pub fn run() -> anyhow::Result<()> {
-    let f = File::open("src/day1").context("open day 1 input")?;
+    let f = File::open("inputs/day1").context("open day 1 input")?;
     let buf = BufReader::new(f);
 
     let lines = buf.lines().map(|line| line.context("reading input line"));
 
     let count = solution(lines)?;
 
-    eprintln!("{count}");
+    eprintln!("Day 1: {count}");
 
     Ok(())
 }

@@ -29,7 +29,7 @@ pub fn solution(ranges: impl Iterator<Item = anyhow::Result<(u64, u64)>>) -> any
 }
 
 pub fn run() -> anyhow::Result<()> {
-    let f = File::open("src/day2").context("open day 2 input")?;
+    let f = File::open("inputs/day2").context("open day 2 input")?;
     let buf = BufReader::new(f);
 
     let input = buf.split(b',').map(|bytes| {
@@ -54,7 +54,7 @@ pub fn run() -> anyhow::Result<()> {
 
     let sum = solution(input)?;
 
-    eprintln!("{sum}");
+    eprintln!("Day 2: {sum}");
     Ok(())
 }
 //
