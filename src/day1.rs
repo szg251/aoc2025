@@ -40,7 +40,7 @@ pub fn solution(lines: impl Iterator<Item = anyhow::Result<String>>) -> anyhow::
 }
 
 pub fn run() -> anyhow::Result<()> {
-    let f = File::open("src/day1/input").context("open day 1 input")?;
+    let f = File::open("src/day1").context("open day 1 input")?;
     let buf = BufReader::new(f);
 
     let lines = buf.lines().map(|line| line.context("reading input line"));
