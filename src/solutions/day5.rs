@@ -18,9 +18,9 @@ pub fn solution(ranges: &[(u64, u64)]) -> anyhow::Result<u64> {
             .enumerate()
             .skip_while(|(i, norm_range)| {
                 index = *i;
-                insert.0 > norm_range.1
+                insert.0 > norm_range.1 + 1
             })
-            .take_while(|(_, norm_range)| insert.1 >= norm_range.0)
+            .take_while(|(_, norm_range)| insert.1 + 1 >= norm_range.0)
             .collect::<Vec<(usize, (u64, u64))>>();
 
         let new_start = if let Some(old) = to_merge.first().map(|(_, r)| r)
@@ -52,7 +52,6 @@ pub fn solution(ranges: &[(u64, u64)]) -> anyhow::Result<u64> {
         } else {
             normalized.insert(index, (new_start, new_end));
         }
-        dbg!(&normalized);
     }
 
     for range in normalized {
