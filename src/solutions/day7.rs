@@ -1,42 +1,38 @@
 use std::{
-    collections::HashSet,
+    collections::HashMap,
     fs::File,
     io::{BufRead, BufReader},
 };
 
 use anyhow::Context;
 
-pub fn solution(lines: impl Iterator<Item = anyhow::Result<String>>) -> anyhow::Result<u32> {
-    let mut beams = HashSet::new();
-    let mut splits = 0u32;
+pub fn solution(lines: impl Iterator<Item = anyhow::Result<String>>) -> anyhow::Result<u64> {
+    let mut beams = HashMap::new();
 
     for line in lines {
         let line = line?;
 
-        // let line_len = line.len();
-
         for (i, char) in line.char_indices() {
             match char {
                 'S' => {
-                    beams.insert(i);
+                    beams.insert(i, 1u64);
                 }
                 '^' => {
-                    if beams.contains(&i) {
-                        dbg!(&i);
+                    if let Some(parent) = beams.get(&i).cloned() {
                         if i > 0 {
-                            beams.insert(i - 1)
-                        } else {
-                            false
+                            beams
+                                .entry(i - 1)
+                                .and_modify(|x| *x += parent)
+                                .or_insert(parent);
                         };
                         if i < line.len() - 1 {
-                            beams.insert(i + 1)
-                        } else {
-                            false
+                            beams
+                                .entry(i + 1)
+                                .and_modify(|x| *x += parent)
+                                .or_insert(parent);
                         };
 
                         beams.remove(&i);
-
-                        splits += 1;
                     }
                 }
                 _ => {}
@@ -44,7 +40,7 @@ pub fn solution(lines: impl Iterator<Item = anyhow::Result<String>>) -> anyhow::
         }
     }
 
-    Ok(splits)
+    Ok(beams.values().sum())
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -86,7 +82,6 @@ pub mod test {
         ];
 
         let splits = solution(testdata.into_iter().map(String::from).map(Ok)).unwrap();
-        assert_eq!(splits, 21);
+        assert_eq!(splits, 40);
     }
 }
-
