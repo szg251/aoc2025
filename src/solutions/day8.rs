@@ -4,7 +4,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 
 #[derive(Debug, Clone)]
 struct Edge {
@@ -16,6 +16,9 @@ struct Edge {
 #[derive(Debug, Clone)]
 struct Node {
     i: usize,
+    x: u64,
+    y: u64,
+    z: u64,
     edges: Vec<Edge>,
 }
 
@@ -51,83 +54,81 @@ impl Ord for ShortestPath {
     }
 }
 
-pub fn solution(coordinates: &[(u64, u64, u64)], conn_num: usize) -> anyhow::Result<u32> {
+pub fn solution(coordinates: &[(u64, u64, u64)]) -> anyhow::Result<u64> {
     // Possible paths with distances
     let mut paths = BinaryHeap::new();
 
-    for (i, (x1, y1, z1)) in coordinates.iter().enumerate() {
-        for (j, (x2, y2, z2)) in coordinates.iter().take(i).enumerate() {
-            let distance = ((x1.abs_diff(*x2).pow(2)
-                + y1.abs_diff(*y2).pow(2)
-                + z1.abs_diff(*z2).pow(2)) as f32)
+    let mut adjacency_list = coordinates
+        .iter()
+        .enumerate()
+        .map(|(i, (x, y, z))| Node {
+            i,
+            x: *x,
+            y: *y,
+            z: *z,
+            edges: Vec::new(),
+        })
+        .collect::<Vec<_>>();
+
+    for n1 in adjacency_list.iter() {
+        for n2 in adjacency_list.iter().take(n1.i) {
+            let distance = ((n1.x.abs_diff(n2.x).pow(2)
+                + n1.y.abs_diff(n2.y).pow(2)
+                + n1.z.abs_diff(n2.z).pow(2)) as f32)
                 .sqrt();
 
-            let edge = Edge { i, j, distance };
+            let edge = Edge {
+                i: n1.i,
+                j: n2.i,
+                distance,
+            };
 
             paths.push(ShortestPath(edge.clone()));
         }
     }
 
-    let mut adjacency_list = Vec::with_capacity(coordinates.len());
-
-    for i in 0..coordinates.len() {
-        adjacency_list.push(Node {
-            i,
-            edges: Vec::new(),
-        })
-    }
-
-    // Find 10 shortests paths
-    let mut i = 0;
-    while let Some(path) = paths.pop()
-        && i < conn_num
-    {
-        i += 1;
-        let ShortestPath(edge) = path;
-
-        adjacency_list[edge.j].edges.push(edge.flip());
-        adjacency_list[edge.i].edges.push(edge);
-    }
-
     let mut discovered = Vec::new();
     let mut visited = HashSet::new();
 
-    let mut graphs = BinaryHeap::new();
+    if let Some(ShortestPath(edge)) = paths.pop() {
+        adjacency_list[edge.i].edges.push(edge.clone());
+        adjacency_list[edge.j].edges.push(edge.flip());
 
-    // DFS
-    for node in adjacency_list.iter() {
-        if !visited.contains(&node.i) {
-            discovered.push(node.i);
-            let mut graph_len = 0u32;
+        discovered.push(edge.i);
+    }
 
-            while let Some(next_node) = discovered.pop() {
-                let next_node = &adjacency_list[next_node];
-                next_node.edges.iter().for_each(|edge| {
-                    if !visited.contains(&edge.j) && !discovered.contains(&edge.j) {
-                        discovered.push(edge.j);
-                    }
-                });
+    while let Some(path) = paths.pop() {
+        let ShortestPath(edge) = path;
 
-                visited.insert(next_node.i);
-                graph_len += 1;
-            }
-            graphs.push(graph_len);
+        adjacency_list[edge.i].edges.push(edge.clone());
+        adjacency_list[edge.j].edges.push(edge.flip());
+
+        // DFS
+
+        if !visited.contains(&edge.i) && visited.contains(&edge.j) {
+            discovered.push(edge.i);
+        }
+
+        if !visited.contains(&edge.j) && visited.contains(&edge.i) {
+            discovered.push(edge.j);
+        }
+
+        while let Some(next_node) = discovered.pop() {
+            let next_node = &adjacency_list[next_node];
+            next_node.edges.iter().for_each(|edge| {
+                if !visited.contains(&edge.j) && !discovered.contains(&edge.j) {
+                    discovered.push(edge.j);
+                }
+            });
+
+            visited.insert(next_node.i);
+        }
+        if visited.len() == coordinates.len() {
+            return Ok(adjacency_list[edge.i].x * adjacency_list[edge.j].x);
         }
     }
 
-    let mut product = 1u32;
-
-    // Calculate product of 3 greatest graph lengths
-    let mut i = 0;
-    while let Some(graph_len) = graphs.pop()
-        && i < 3
-    {
-        i += 1;
-
-        product *= graph_len;
-    }
-
-    Ok(product)
+    Err(anyhow!("couldn't connect all the nodes"))
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -146,7 +147,7 @@ pub fn run() -> anyhow::Result<()> {
         coordinates.push((nums[0], nums[1], nums[2]));
     }
 
-    let result = solution(&coordinates, 1000)?;
+    let result = solution(&coordinates)?;
 
     eprintln!("Day 8: {result}");
 
@@ -182,7 +183,7 @@ mod test {
             (425, 690, 689),
         ];
 
-        let result = solution(&testdata, 10).unwrap();
-        assert_eq!(result, 40);
+        let result = solution(&testdata).unwrap();
+        assert_eq!(result, 25272);
     }
 }
